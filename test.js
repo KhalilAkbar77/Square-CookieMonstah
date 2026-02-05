@@ -1,25 +1,39 @@
 console.log("Accessibility Script Loaded");
 
-(function () {
-  if (window.__squareA11yLoaded) return;
-  window.__squareA11yLoaded = true;
+$(document).ready(function () {
+  const currentHost = window.location.hostname.replace(/^www\./, '');
+  const warningText = " (this link will open in a new tab)";
 
-  document.addEventListener('DOMContentLoaded', function () {
+  // Select all HTTP/HTTPS links excluding mailto, tel, and anchors
+  $('a[href^="http://"], a[href^="https://"]').each(function () {
+    const $link = $(this);
+    const linkHost = this.hostname ? this.hostname.replace(/^www\./, '') : '';
 
-    // Example 1: Announce target=_blank links
-    document.querySelectorAll('a[target="_blank"]').forEach(function (link) {
-      if (link.querySelector('.visually-hidden')) return;
+    // Skip internal links or invalid hosts
+    if (!linkHost || linkHost === currentHost) return;
 
-      var span = document.createElement('span');
-      span.className = 'visually-hidden';
-      span.textContent = ' (This link will open in a new tab)';
-      link.appendChild(span);
+    // Get visible text or fallback from image alt
+    let linkText = $link.text().trim();
+    if (!linkText) {
+      const imgAlt = $link.find('img').attr('alt');
+      linkText = imgAlt ? imgAlt.trim() : "this link";
+    }
+
+    // Preserve existing aria-label if present
+    const currentAriaLabel = $link.attr('aria-label');
+    const newLabel = currentAriaLabel
+      ? `${currentAriaLabel}${warningText}`
+      : `${linkText}${warningText}`;
+
+    // Apply attributes
+    $link.attr({
+      'aria-label': newLabel,
+      'title': newLabel, // optional visual tooltip
+      'target': '_blank',
+      'rel': 'noopener noreferrer nofollow'
     });
 
-    // Example 2: Ensure buttons have focus
-    // document.querySelectorAll('button, [role="button"]').forEach(function (btn) {
-    //   btn.setAttribute('tabindex', '0');
-    // });
-
+    // Optional: add visual indicator class
+    $link.addClass('external-link');
   });
-})();
+});
